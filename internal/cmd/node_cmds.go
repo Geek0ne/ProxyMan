@@ -19,6 +19,12 @@ import (
 // dryRun is the global --dry-run switch: every write is simulated, not performed.
 var dryRun bool
 
+// probe tuning, bound to flags on the probe command
+var (
+	probeTimeout time.Duration
+	probeJobs    int
+)
+
 // ==================== list ====================
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -103,8 +109,9 @@ for 'list'.`,
 			return fmt.Errorf("no nodes to probe — import some first")
 		}
 
-		fmt.Printf("Probing %d node(s) with %ds timeout...\n\n", len(targets), 5)
-		prober := node.NewProber()
+		fmt.Printf("Probing %d node(s) — timeout %s, concurrency %d...\n\n",
+			len(targets), probeTimeout, probeJobs)
+		prober := node.NewProberWith(probeTimeout, probeJobs)
 		results := prober.Probe(targets)
 
 		fmt.Print(node.Report(results))
@@ -340,6 +347,11 @@ func truncate(s string, max int) string {
 
 func init() {
 	logCmd.Flags().BoolVarP(&followLogs, "follow", "f", false, "stream new log lines")
+
+	probeCmd.Flags().DurationVar(&probeTimeout, "timeout", node.DefaultProbeTimeout,
+		"per-node reachability timeout (e.g. 500ms, 10s)")
+	probeCmd.Flags().IntVar(&probeJobs, "jobs", node.DefaultProbeJobs,
+		fmt.Sprintf("concurrent probes (1-%d)", node.MaxProbeJobs))
 
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "simulate write operations without persisting them")
 
