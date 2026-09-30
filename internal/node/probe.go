@@ -20,24 +20,51 @@ type DelayResult struct {
 	Err     string
 }
 
+// Default probe settings, overridable from the command line.
+const (
+	// DefaultProbeTimeout bounds a single node's reachability check.
+	DefaultProbeTimeout = 5 * time.Second
+	// DefaultProbeJobs is how many nodes are checked at once.
+	DefaultProbeJobs = 8
+	// MaxProbeJobs caps concurrency so a large node list cannot exhaust
+	// the host's file descriptors.
+	MaxProbeJobs = 64
+)
+
 // Prober measures node reachability with bounded concurrency
 type Prober struct {
 	Timeout time.Duration
 	Jobs    int
 }
 
-// NewProber returns a prober with sensible defaults
+// NewProber returns a prober using the package defaults
 func NewProber() *Prober {
-	return &Prober{Timeout: 5 * time.Second, Jobs: 8}
+	return &Prober{Timeout: DefaultProbeTimeout, Jobs: DefaultProbeJobs}
+}
+
+// NewProberWith returns a prober using caller-supplied settings. Each
+// parameter falls back to its own default independently when non-positive,
+// and jobs is clamped to MaxProbeJobs.
+func NewProberWith(timeout time.Duration, jobs int) *Prober {
+	if timeout <= 0 {
+		timeout = DefaultProbeTimeout
+	}
+	switch {
+	case jobs < 1:
+		jobs = DefaultProbeJobs
+	case jobs > MaxProbeJobs:
+		jobs = MaxProbeJobs
+	}
+	return &Prober{Timeout: timeout, Jobs: jobs}
 }
 
 // Probe measures all supplied nodes and returns results sorted by latency
 func (p *Prober) Probe(nodes []*Node) []DelayResult {
 	if p.Jobs < 1 {
-		p.Jobs = 8
+		p.Jobs = DefaultProbeJobs
 	}
 	if p.Timeout <= 0 {
-		p.Timeout = 5 * time.Second
+		p.Timeout = DefaultProbeTimeout
 	}
 
 	results := make([]DelayResult, len(nodes))

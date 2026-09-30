@@ -145,6 +145,7 @@ sudo systemctl enable --now ProxyMan-mihomo
 | `ProxyMan list` | 列出已保存的节点 |
 | `ProxyMan remove <name>` | 删除指定节点 |
 | `ProxyMan probe [name...]` | 测速（TCP 握手延迟），结果按速度排序 |
+| `ProxyMan probe --timeout 10s --jobs 16` | 自定义超时与并发 |
 | `ProxyMan apply <engine> [mode]` | 把节点库写入引擎配置 |
 
 `apply` 的 `mode` 可选 `full`（全流量走代理）或 `china-split`（国内直连、国际代理）。
